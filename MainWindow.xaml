@@ -59,6 +59,10 @@
                         x:Name="RefreshDevicesButton"
                         Content="Refresh" 
                         Click="OnRefreshDevicesClick"/>
+                    <Button 
+                        x:Name="ConfigureAxisMappingButton"
+                        Content="Configure Axes" 
+                        Click="OnConfigureAxisMappingClick"/>
                 </StackPanel>
             </Grid>
 

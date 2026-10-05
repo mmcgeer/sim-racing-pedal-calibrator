@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="SimRacingPedalCalibrator.AxisMappingDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SimRacingPedalCalibrator"
+    Title="Configure Axis Mapping"
+    PrimaryButtonText="Save"
+    CloseButtonText="Cancel"
+    DefaultButton="Primary">
+
+    <ScrollViewer>
+        <StackPanel Spacing="20" Padding="20">
+            <!-- Device Info -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Device:" FontWeight="SemiBold" FontSize="14"/>
+                <TextBlock x:Name="DeviceNameText" Text="Device Name" FontSize="12" Opacity="0.8"/>
+                <TextBlock x:Name="DetectedAxesText" Text="Detected Axes: 3" FontSize="12" Opacity="0.8"/>
+            </StackPanel>
+
+            <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,8,0,8"/>
+
+            <!-- Throttle Mapping -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Throttle Axis" FontWeight="SemiBold" FontSize="13"/>
+                <ComboBox x:Name="ThrottleAxisCombo" SelectionChanged="OnThrottleAxisChanged"/>
+                <TextBlock x:Name="ThrottleValueText" Text="Current Value: 0" FontSize="11" Opacity="0.7"/>
+                <ProgressBar x:Name="ThrottleBar" Value="0" Maximum="100" Height="4"/>
+            </StackPanel>
+
+            <!-- Brake Mapping -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Brake Axis" FontWeight="SemiBold" FontSize="13"/>
+                <ComboBox x:Name="BrakeAxisCombo" SelectionChanged="OnBrakeAxisChanged"/>
+                <TextBlock x:Name="BrakeValueText" Text="Current Value: 0" FontSize="11" Opacity="0.7"/>
+                <ProgressBar x:Name="BrakeBar" Value="0" Maximum="100" Height="4"/>
+            </StackPanel>
+
+            <!-- Clutch Mapping -->
+            <StackPanel Spacing="8">
+                <TextBlock Text="Clutch Axis" FontWeight="SemiBold" FontSize="13"/>
+                <ComboBox x:Name="ClutchAxisCombo" SelectionChanged="OnClutchAxisChanged"/>
+                <TextBlock x:Name="ClutchValueText" Text="Current Value: 0" FontSize="11" Opacity="0.7"/>
+                <ProgressBar x:Name="ClutchBar" Value="0" Maximum="100" Height="4"/>
+            </StackPanel>
+
+            <Border Height="1" Background="{ThemeResource DividerStrokeColorDefaultBrush}" Margin="0,8,0,8"/>
+
+            <!-- Instructions -->
+            <StackPanel Spacing="4">
+                <TextBlock Text="Instructions:" FontWeight="SemiBold" FontSize="12"/>
+                <TextBlock Text="1. Select which device axis corresponds to each calibration axis" TextWrapping="Wrap" FontSize="11" Opacity="0.8"/>
+                <TextBlock Text="2. Move your pedals to verify the values update correctly" TextWrapping="Wrap" FontSize="11" Opacity="0.8"/>
+                <TextBlock Text="3. If an axis is not used, select 'None (Not Used)'" TextWrapping="Wrap" FontSize="11" Opacity="0.8"/>
+                <TextBlock Text="4. Click Save to apply the mapping" TextWrapping="Wrap" FontSize="11" Opacity="0.8"/>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</ContentDialog>

@@ -46,11 +46,11 @@ namespace SimRacingPedalCalibrator.Services
             var devices = new List<DeviceInfo>();
             try
             {
-                // Enumerate COM Ports
+                // Enumerate COM Ports (assume 3 axes for serial: Throttle, Brake, Clutch)
                 var comPorts = SerialPort.GetPortNames().OrderBy(x => x).ToList();
                 foreach (var portName in comPorts)
                 {
-                    devices.Add(new DeviceInfo
+                    var device = new DeviceInfo
                     {
                         InstanceGuid = Guid.Empty,
                         ProductName = $"COM Port - {portName}",
@@ -60,7 +60,22 @@ namespace SimRacingPedalCalibrator.Services
                         IsConnected = false,
                         ConnectionDeviceType = ConnectionDeviceType.SerialPort,
                         ComPort = portName
-                    });
+                    };
+
+                    // Add detected axes for serial port
+                    device.DetectedAxes.Add(new DeviceAxis(InputAxisType.Throttle, "Throttle (Index 0)", 0));
+                    device.DetectedAxes.Add(new DeviceAxis(InputAxisType.Brake, "Brake (Index 1)", 1));
+                    device.DetectedAxes.Add(new DeviceAxis(InputAxisType.Slider1, "Z Slider (Index 2)", 2));
+
+                    // Set default mapping for serial ports
+                    device.AxisMapping = new AxisMapping(portName)
+                    {
+                        ThrottleAxis = InputAxisType.Throttle,
+                        BrakeAxis = InputAxisType.Brake,
+                        ClutchAxis = InputAxisType.Slider1
+                    };
+
+                    devices.Add(device);
                 }
 
                 // Enumerate USB GameControl Devices
@@ -73,8 +88,7 @@ namespace SimRacingPedalCalibrator.Services
                         try
                         {
                             var joystick = new Joystick(_directInput, device.InstanceGuid);
-                            
-                            devices.Add(new DeviceInfo
+                            var deviceInfo = new DeviceInfo
                             {
                                 InstanceGuid = device.InstanceGuid,
                                 ProductName = device.ProductName,
@@ -84,8 +98,15 @@ namespace SimRacingPedalCalibrator.Services
                                 IsConnected = false,
                                 ConnectionDeviceType = ConnectionDeviceType.DirectInput,
                                 ComPort = null
-                            });
+                            };
 
+                            // Detect available axes on the device
+                            DetectDeviceAxes(joystick, deviceInfo);
+
+                            // Set default mapping
+                            deviceInfo.AxisMapping = new AxisMapping(device.InstanceGuid.ToString());
+
+                            devices.Add(deviceInfo);
                             joystick.Dispose();
                         }
                         catch (Exception ex)
@@ -245,17 +266,44 @@ namespace SimRacingPedalCalibrator.Services
         {
             try
             {
-                if (_joystick == null)
+                if (_joystick == null || _currentDevice == null)
                     return null;
 
                 _joystick.Poll();
                 var state = _joystick.GetCurrentState();
 
+                // Get the axis mapping for current device
+                var mapping = _currentDevice.AxisMapping;
+
+                // Create a dictionary of axis types to values from the joystick state
+                var sliders = state.Sliders;
+                var axisValues = new Dictionary<InputAxisType, int>
+                {
+                    { InputAxisType.X, state.X },
+                    { InputAxisType.Y, state.Y },
+                    { InputAxisType.Z, state.Z },
+                    { InputAxisType.RX, state.RotationX },
+                    { InputAxisType.RY, state.RotationY },
+                    { InputAxisType.RZ, state.RotationZ },
+                    { InputAxisType.Slider1, sliders.Length > 0 ? sliders[0] : 0 },
+                    { InputAxisType.Slider2, sliders.Length > 1 ? sliders[1] : 0 }
+                };
+
+                // Update the detected axes with current values
+                foreach (var detectedAxis in _currentDevice.DetectedAxes)
+                {
+                    if (axisValues.ContainsKey(detectedAxis.AxisType))
+                    {
+                        detectedAxis.CurrentValue = axisValues[detectedAxis.AxisType];
+                    }
+                }
+
+                // Get values based on the device's axis mapping
                 return new AxisValues
                 {
-                    Brake = state.RotationX,
-                    Throttle = state.RotationZ,
-                    Clutch = state.RotationY
+                    Throttle = axisValues.ContainsKey(mapping.ThrottleAxis) ? axisValues[mapping.ThrottleAxis] : 0,
+                    Brake = axisValues.ContainsKey(mapping.BrakeAxis) ? axisValues[mapping.BrakeAxis] : 0,
+                    Clutch = axisValues.ContainsKey(mapping.ClutchAxis) ? axisValues[mapping.ClutchAxis] : 0
                 };
             }
             catch (Exception ex)
@@ -285,13 +333,40 @@ namespace SimRacingPedalCalibrator.Services
                         int brake = BitConverter.ToUInt16(_serialBuffer, 2);
                         int clutch = BitConverter.ToUInt16(_serialBuffer, 4);
 
+                        // Update detected axes with current values
+                        if (_currentDevice != null)
+                        {
+                            foreach (var axis in _currentDevice.DetectedAxes)
+                            {
+                                switch (axis.Index)
+                                {
+                                    case 0:
+                                        axis.CurrentValue = throttle;
+                                        break;
+                                    case 1:
+                                        axis.CurrentValue = brake;
+                                        break;
+                                    case 2:
+                                        axis.CurrentValue = clutch;
+                                        break;
+                                }
+                            }
+                        }
+
                         _bufferIndex = 0;
+
+                        // Get the axis mapping for current device
+                        var mapping = _currentDevice?.AxisMapping;
+                        if (mapping == null)
+                        {
+                            mapping = new AxisMapping();
+                        }
 
                         return new AxisValues
                         {
-                            Throttle = throttle,
-                            Brake = brake,
-                            Clutch = clutch
+                            Throttle = mapping.ThrottleAxis == InputAxisType.Throttle ? throttle : (mapping.ThrottleAxis == InputAxisType.Brake ? brake : clutch),
+                            Brake = mapping.BrakeAxis == InputAxisType.Throttle ? throttle : (mapping.BrakeAxis == InputAxisType.Brake ? brake : clutch),
+                            Clutch = mapping.ClutchAxis == InputAxisType.Throttle ? throttle : (mapping.ClutchAxis == InputAxisType.Brake ? brake : clutch)
                         };
                     }
                 }
@@ -309,6 +384,72 @@ namespace SimRacingPedalCalibrator.Services
         {
             DisconnectCurrent();
             _directInput?.Dispose();
+        }
+
+        private void DetectDeviceAxes(Joystick joystick, DeviceInfo deviceInfo)
+        {
+            try
+            {
+                var axes = joystick.GetObjects(DeviceObjectTypeFlags.Axis);
+                int axisIndex = 0;
+
+                foreach (var axis in axes)
+                {
+                    // Map DirectInput axis objects to our InputAxisType enum
+                    var inputAxisType = MapDirectInputAxisToType(axisIndex);
+                    var displayName = $"{axis.Name} ({inputAxisType})";
+
+                    deviceInfo.DetectedAxes.Add(new DeviceAxis(
+                        inputAxisType,
+                        displayName,
+                        axisIndex
+                    )
+                    {
+                        MinValue = 0,
+                        MaxValue = 65535
+                    });
+
+                    axisIndex++;
+                }
+
+                // If no axes detected, provide defaults
+                if (deviceInfo.DetectedAxes.Count == 0)
+                {
+                    deviceInfo.DetectedAxes.Add(new DeviceAxis(InputAxisType.X, "X Axis", 0));
+                    deviceInfo.DetectedAxes.Add(new DeviceAxis(InputAxisType.Y, "Y Axis", 1));
+                    deviceInfo.DetectedAxes.Add(new DeviceAxis(InputAxisType.Z, "Z Axis", 2));
+                }
+
+                // Set reasonable defaults based on detected axes
+                if (deviceInfo.DetectedAxes.Count >= 1)
+                    deviceInfo.AxisMapping.ThrottleAxis = deviceInfo.DetectedAxes[0].AxisType;
+                if (deviceInfo.DetectedAxes.Count >= 2)
+                    deviceInfo.AxisMapping.BrakeAxis = deviceInfo.DetectedAxes[1].AxisType;
+                if (deviceInfo.DetectedAxes.Count >= 3)
+                    deviceInfo.AxisMapping.ClutchAxis = deviceInfo.DetectedAxes[2].AxisType;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error detecting axes: {ex.Message}");
+            }
+        }
+
+        private InputAxisType MapDirectInputAxisToType(int index)
+        {
+            // Map DirectInput axis index to our InputAxisType enum
+            // This is a simple index-based mapping for common device configurations
+            return index switch
+            {
+                0 => InputAxisType.X,
+                1 => InputAxisType.Y,
+                2 => InputAxisType.Z,
+                3 => InputAxisType.RX,
+                4 => InputAxisType.RY,
+                5 => InputAxisType.RZ,
+                6 => InputAxisType.Slider1,
+                7 => InputAxisType.Slider2,
+                _ => InputAxisType.Unknown
+            };
         }
     }
 }

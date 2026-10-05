@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace SimRacingPedalCalibrator.Models
 {
@@ -16,6 +17,76 @@ namespace SimRacingPedalCalibrator.Models
         Custom          // User-defined curve
     }
 
+    /// <summary>
+    /// Represents available input axis types that can be mapped to calibration axes
+    /// </summary>
+    public enum InputAxisType
+    {
+        X,          // Typical X axis (DirectInput)
+        Y,          // Typical Y axis (DirectInput)
+        Z,          // Typical Z axis (DirectInput)
+        RX,         // Rotational X
+        RY,         // Rotational Y
+        RZ,         // Rotational Z
+        Slider1,    // First slider (like your Arduino slider)
+        Slider2,    // Second slider
+        Throttle,   // Named axis: Throttle
+        Brake,      // Named axis: Brake
+        Clutch,     // Named axis: Clutch
+        Unknown     // Unknown axis
+    }
+
+    /// <summary>
+    /// Represents a physical input axis from a device
+    /// </summary>
+    public class DeviceAxis
+    {
+        public InputAxisType AxisType { get; set; }
+        public string DisplayName { get; set; } = string.Empty;
+        public int Index { get; set; }  // For serial ports: which byte position (0-2)
+        public int MinValue { get; set; } = 0;
+        public int MaxValue { get; set; } = 65535;
+        public int CurrentValue { get; set; } = 0;
+
+        public DeviceAxis(InputAxisType type, string displayName, int index = 0)
+        {
+            AxisType = type;
+            DisplayName = displayName;
+            Index = index;
+        }
+    }
+
+    /// <summary>
+    /// Maps device input axes to calibration axes (Throttle, Brake, Clutch)
+    /// </summary>
+    public class AxisMapping
+    {
+        public string DeviceId { get; set; } = string.Empty;  // Device GUID or COM port name
+        
+        // Maps calibration axis to device input axis
+        public InputAxisType ThrottleAxis { get; set; } = InputAxisType.Y;
+        public InputAxisType BrakeAxis { get; set; } = InputAxisType.Z;
+        public InputAxisType ClutchAxis { get; set; } = InputAxisType.RZ;
+
+        public AxisMapping() { }
+
+        public AxisMapping(string deviceId)
+        {
+            DeviceId = deviceId;
+        }
+
+        /// <summary>
+        /// Get which calibration axis this input axis maps to
+        /// </summary>
+        public string? GetCalibrationAxisForInput(InputAxisType inputAxis)
+        {
+            if (inputAxis == ThrottleAxis) return "Throttle";
+            if (inputAxis == BrakeAxis) return "Brake";
+            if (inputAxis == ClutchAxis) return "Clutch";
+            return null;
+        }
+    }
+
     public class DeviceInfo
     {
         public Guid InstanceGuid { get; set; }
@@ -27,6 +98,12 @@ namespace SimRacingPedalCalibrator.Models
         public string? ComPort { get; set; }  // For serial ports
         public string DisplayName => $"{ProductName} ({InstanceName})";
         public bool IsConnected { get; set; }
+        
+        // Detected axes on this device
+        public List<DeviceAxis> DetectedAxes { get; set; } = new();
+        
+        // Axis mapping for this device
+        public AxisMapping AxisMapping { get; set; } = new();
     }
 
     public class AxisCalibration

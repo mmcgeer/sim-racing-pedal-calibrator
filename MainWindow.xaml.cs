@@ -120,12 +120,66 @@ namespace SimRacingPedalCalibrator
             _ = RefreshAvailableDevicesAsync();
         }
 
+        private async void OnConfigureAxisMappingClick(object sender, RoutedEventArgs e)
+        {
+            if (DeviceComboBox.SelectedItem is not DeviceInfo device)
+            {
+                var dialog = new ContentDialog
+                {
+                    Title = "No Device Selected",
+                    Content = "Please select a device first.",
+                    CloseButtonText = "OK",
+                    XamlRoot = Content.XamlRoot
+                };
+                _ = await dialog.ShowAsync();
+                return;
+            }
+
+            // Make sure device has detected axes
+            if (device.DetectedAxes.Count == 0)
+            {
+                var dialog = new ContentDialog
+                {
+                    Title = "No Axes Detected",
+                    Content = "This device has no detectable axes.",
+                    CloseButtonText = "OK",
+                    XamlRoot = Content.XamlRoot
+                };
+                _ = await dialog.ShowAsync();
+                return;
+            }
+
+            // Show axis mapping dialog
+            var mappingDialog = new AxisMappingDialog(device);
+            mappingDialog.XamlRoot = Content.XamlRoot;
+            
+            var result = await mappingDialog.ShowAsync();
+            
+            if (result == ContentDialogResult.Primary)
+            {
+                // Save the axis mapping
+                AxisMappingRegistryService.SaveAxisMapping(device);
+                
+                var confirmDialog = new ContentDialog
+                {
+                    Title = "Axis Mapping Saved",
+                    Content = "Axis configuration has been saved. Please restart the application to apply changes.",
+                    CloseButtonText = "OK",
+                    XamlRoot = Content.XamlRoot
+                };
+                _ = await confirmDialog.ShowAsync();
+            }
+        }
+
         private async void OnDeviceSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (DeviceComboBox.SelectedItem is DeviceInfo device)
             {
                 try
                 {
+                    // Load saved axis mapping
+                    AxisMappingRegistryService.LoadAxisMapping(device);
+
                     if (_deviceService.ConnectToDevice(device))
                     {
                         // For serial ports, no registry lookup needed (yet)
