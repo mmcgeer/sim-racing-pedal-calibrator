@@ -12,10 +12,10 @@ A modern Windows 11 calibration application for sim racing pedals. Features real
 
 ## Supported Devices
 
-Currently configured for:
-- VID: 0x16C0
-- PID: 0x05DF
+- The DirectInput device whose product name contains `EMCFFBV2` (case-insensitive)
 - 3 Axes: Brake (X), Throttle (Y), Clutch (Z)
+
+The device must be connected and exposed as a DirectInput joystick. Calibration data is read from and saved to the detected device's Windows DirectInput registry key.
 
 ## Technology Stack
 
@@ -51,7 +51,7 @@ Currently configured for:
 
 Calibration data is stored as hex values (3 × 4-byte little-endian integers):
 ```
-[HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_16C0&PID_05DF\Calibration\0\Type\Axes\{axis}]
+[HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_{vendor ID}&PID_{product ID}\Calibration\0\Type\Axes\{axis}]
 "Calibration"=hex:{min},{center},{max}
 ```
 

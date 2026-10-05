@@ -1,0 +1,162 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="SimRacingPedalCalibrator.AxisCalibrationControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SimRacingPedalCalibrator">
+
+    <TabView>
+        <!-- Calibration Tab -->
+        <TabViewItem Header="Calibration">
+            <Grid RowSpacing="12" Padding="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Header -->
+                <TextBlock x:ConnectionId='4' 
+                    Grid.Row="0"
+                    x:Name="AxisNameText"
+                    Text="Axis Name"
+                    Style="{StaticResource SubtitleTextBlockStyle}"/>
+
+                <!-- Value Display -->
+                <Grid Grid.Row="1" ColumnSpacing="20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Current Value -->
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <TextBlock Text="Current Value" FontSize="12" Opacity="0.7"/>
+                        <TextBlock x:ConnectionId='12' 
+                            x:Name="CurrentValueText"
+                            Text="0"
+                            Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                    </StackPanel>
+
+                    <!-- Min Value -->
+                    <StackPanel Grid.Column="1" Spacing="4">
+                        <TextBlock Text="Min" FontSize="12" Opacity="0.7"/>
+                        <TextBlock x:ConnectionId='11' 
+                            x:Name="MinValueText"
+                            Text="0"
+                            Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                    </StackPanel>
+
+                    <!-- Max Value -->
+                    <StackPanel Grid.Column="2" Spacing="4">
+                        <TextBlock Text="Max" FontSize="12" Opacity="0.7"/>
+                        <TextBlock x:ConnectionId='10' 
+                            x:Name="MaxValueText"
+                            Text="65535"
+                            Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                    </StackPanel>
+                </Grid>
+
+                <!-- Progress Bar for Raw Value -->
+                <ProgressBar x:ConnectionId='5' 
+                    Grid.Row="2"
+                    x:Name="ValueBar"
+                    Value="0"
+                    Maximum="65535"
+                    Height="8"
+                    CornerRadius="4"/>
+
+                <!-- Calibration Controls -->
+                <Grid Grid.Row="3" ColumnSpacing="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" Spacing="8">
+                        <TextBlock Text="Min Value" FontSize="12" Opacity="0.7"/>
+                        <NumberBox x:ConnectionId='9' 
+                            x:Name="MinInput"
+                            Minimum="0"
+                            Maximum="65535"
+                            SpinButtonPlacementMode="Inline"
+                                                                    />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" Spacing="8">
+                        <TextBlock Text="Max Value" FontSize="12" Opacity="0.7"/>
+                        <NumberBox x:ConnectionId='8' 
+                            x:Name="MaxInput"
+                            Minimum="0"
+                            Maximum="65535"
+                            SpinButtonPlacementMode="Inline"
+                                                                    />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Dead Zone Control -->
+                <StackPanel Grid.Row="4" Spacing="8">
+                    <TextBlock Text="Dead Zone" FontSize="12" Opacity="0.7"/>
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="60"/>
+                        </Grid.ColumnDefinitions>
+                        <Slider x:ConnectionId='6' 
+                            Grid.Column="0"
+                            x:Name="DeadZoneSlider"
+                            Minimum="0"
+                            Maximum="10000"
+                            Value="0"
+                                                            />
+                        <TextBlock x:ConnectionId='7' 
+                            Grid.Column="1"
+                            x:Name="DeadZoneValue"
+                            Text="0"
+                            VerticalAlignment="Center"
+                            TextAlignment="Right"/>
+                    </Grid>
+                </StackPanel>
+            </Grid>
+        </TabViewItem>
+
+        <!-- Response Curve Tab -->
+        <TabViewItem Header="Response Curve">
+            <Grid RowSpacing="12" Padding="12">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Instructions -->
+                <StackPanel Grid.Row="0" Spacing="4">
+                    <TextBlock Text="Interactive 10-Point Curve" FontSize="14" FontWeight="SemiBold"/>
+                    <TextBlock Text="Click and drag the blue points to customize your response curve" FontSize="12" Opacity="0.7"/>
+                </StackPanel>
+
+                <!-- Curve Graph Canvas -->
+                <Border Grid.Row="1" BorderBrush="{ThemeResource ControlElevationBorderBrush}" BorderThickness="1" CornerRadius="4" Margin="0,12">
+                    <Canvas x:ConnectionId='3' 
+                        x:Name="CurveCanvas"
+                        Background="{ThemeResource ControlAltFillColorSecondaryBrush}"
+                        MinHeight="300"
+                                                             />
+                </Border>
+
+                <!-- Description -->
+                <TextBlock x:ConnectionId='2' 
+                    Grid.Row="2"
+                    x:Name="CurveDescription"
+                    Text="Linear curve - drag points to modify"
+                    TextWrapping="Wrap"
+                    FontSize="12"
+                    Opacity="0.7"/>
+            </Grid>
+        </TabViewItem>
+    </TabView>
+</UserControl>
+

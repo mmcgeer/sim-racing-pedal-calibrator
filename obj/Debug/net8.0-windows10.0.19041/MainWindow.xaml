@@ -1,0 +1,118 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="SimRacingPedalCalibrator.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:SimRacingPedalCalibrator"
+    Title="Sim Racing Pedal Calibrator">
+
+    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Title Bar -->
+        <Grid x:ConnectionId='2' x:Name="TitleBarGrid" Height="48" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+            <TextBlock 
+                Text="Sim Racing Pedal Calibrator" 
+                VerticalAlignment="Center" 
+                Margin="16,0,0,0"
+                Style="{StaticResource TitleLargeTextBlockStyle}"/>
+        </Grid>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1" Padding="20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Device Selection and Status Bar -->
+            <Grid Grid.Row="0" Margin="0,0,0,20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" Spacing="20" Grid.Column="0">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="Device Status:" VerticalAlignment="Center" FontWeight="Bold"/>
+                        <TextBlock x:ConnectionId='11' 
+                            x:Name="DeviceStatusText" 
+                            Text="Searching..." 
+                            VerticalAlignment="Center"
+                            Foreground="{ThemeResource SystemAccentColor}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="10" Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="Select Device:" VerticalAlignment="Center" FontWeight="Bold"/>
+                    <ComboBox x:ConnectionId='9' 
+                        x:Name="DeviceComboBox"
+                        Width="300"
+                        DisplayMemberPath="DisplayName"
+                                                                   
+                        PlaceholderText="Available Devices..."/>
+                    <Button x:ConnectionId='10' 
+                        x:Name="RefreshDevicesButton"
+                        Content="Refresh" 
+                                                     />
+                </StackPanel>
+            </Grid>
+
+            <!-- Pedal Calibration Panels -->
+            <Grid Grid.Row="1">
+                <ScrollViewer>
+                    <StackPanel Spacing="20" Padding="0,0,0,20">
+                        <!-- Brake Axis -->
+                        <Border CornerRadius="8" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="1" Padding="20">
+                            <local:AxisCalibrationControl x:ConnectionId='8' 
+                                x:Name="BrakeControl"
+                                AxisName="Brake (X Axis)"
+                                AxisColor="#FF0000"/>
+                        </Border>
+
+                        <!-- Throttle Axis -->
+                        <Border CornerRadius="8" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="1" Padding="20">
+                            <local:AxisCalibrationControl x:ConnectionId='7' 
+                                x:Name="ThrottleControl"
+                                AxisName="Throttle (Y Axis)"
+                                AxisColor="#00AA00"/>
+                        </Border>
+
+                        <!-- Clutch Axis -->
+                        <Border CornerRadius="8" BorderBrush="{ThemeResource DividerStrokeColorDefaultBrush}" BorderThickness="1" Padding="20">
+                            <local:AxisCalibrationControl x:ConnectionId='6' 
+                                x:Name="ClutchControl"
+                                AxisName="Clutch (Z Axis)"
+                                AxisColor="#0066FF"/>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- Control Buttons -->
+            <Grid Grid.Row="2" Margin="0,20,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Right">
+                    <Button x:ConnectionId='3' 
+                        x:Name="CalibrateButton"
+                        Content="Start Calibration" 
+                                                
+                        Style="{StaticResource AccentButtonStyle}"/>
+                    <Button x:ConnectionId='4' 
+                        x:Name="SaveButton"
+                        Content="Save Calibration" 
+                        IsEnabled="False"
+                                           />
+                    <Button x:ConnectionId='5' 
+                        x:Name="ResetButton"
+                        Content="Reset to Default" 
+                                            />
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
+

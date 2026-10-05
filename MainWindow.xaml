@@ -4,8 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:SimRacingPedalCalibrator"
-    Title="Sim Racing Pedal Calibrator"
-    ExtendsContentIntoTitleBar="True">
+    Title="Sim Racing Pedal Calibrator">
 
     <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Grid.RowDefinitions>
@@ -30,9 +29,14 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!-- Status Bar -->
+            <!-- Device Selection and Status Bar -->
             <Grid Grid.Row="0" Margin="0,0,0,20">
-                <StackPanel Orientation="Horizontal" Spacing="20">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" Spacing="20" Grid.Column="0">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <TextBlock Text="Device Status:" VerticalAlignment="Center" FontWeight="Bold"/>
                         <TextBlock 
@@ -41,6 +45,20 @@
                             VerticalAlignment="Center"
                             Foreground="{ThemeResource SystemAccentColor}"/>
                     </StackPanel>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Spacing="10" Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="Select Device:" VerticalAlignment="Center" FontWeight="Bold"/>
+                    <ComboBox 
+                        x:Name="DeviceComboBox"
+                        Width="300"
+                        DisplayMemberPath="DisplayName"
+                        SelectionChanged="OnDeviceSelectionChanged"
+                        PlaceholderText="Available Devices..."/>
+                    <Button 
+                        x:Name="RefreshDevicesButton"
+                        Content="Refresh" 
+                        Click="OnRefreshDevicesClick"/>
                 </StackPanel>
             </Grid>
 
@@ -86,6 +104,7 @@
                     <Button 
                         x:Name="SaveButton"
                         Content="Save Calibration" 
+                        IsEnabled="False"
                         Click="OnSaveClick"/>
                     <Button 
                         x:Name="ResetButton"

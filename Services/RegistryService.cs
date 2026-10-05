@@ -1,3 +1,4 @@
+using System;
 using Microsoft.Win32;
 using SimRacingPedalCalibrator.Models;
 
@@ -5,16 +6,15 @@ namespace SimRacingPedalCalibrator.Services
 {
     public class RegistryService
     {
-        private const string RegistryPath = @"HKEY_CURRENT_USER\System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_16C0&PID_05DF\Calibration\0\Type\Axes";
-
-        public CalibrationData LoadCalibration()
+        public CalibrationData LoadCalibration(int vendorId, int productId)
         {
             var calibration = new CalibrationData();
+            var registryPath = GetRegistryPath(vendorId, productId);
 
             try
             {
                 // Axis 0 - Brake
-                var brakeData = Registry.GetValue($"{RegistryPath}\\0", "Calibration", null);
+                var brakeData = Registry.GetValue($"{registryPath}\\0", "Calibration", null);
                 if (brakeData is byte[] brakeBytess)
                 {
                     var values = BytesToCalibration(brakeBytess);
@@ -22,7 +22,7 @@ namespace SimRacingPedalCalibrator.Services
                 }
 
                 // Axis 1 - Throttle
-                var throttleData = Registry.GetValue($"{RegistryPath}\\1", "Calibration", null);
+                var throttleData = Registry.GetValue($"{registryPath}\\1", "Calibration", null);
                 if (throttleData is byte[] throttleBytes)
                 {
                     var values = BytesToCalibration(throttleBytes);
@@ -30,7 +30,7 @@ namespace SimRacingPedalCalibrator.Services
                 }
 
                 // Axis 2 - Clutch
-                var clutchData = Registry.GetValue($"{RegistryPath}\\2", "Calibration", null);
+                var clutchData = Registry.GetValue($"{registryPath}\\2", "Calibration", null);
                 if (clutchData is byte[] clutchBytes)
                 {
                     var values = BytesToCalibration(clutchBytes);
@@ -45,11 +45,11 @@ namespace SimRacingPedalCalibrator.Services
             return calibration;
         }
 
-        public void SaveCalibration(CalibrationData calibration)
+        public void SaveCalibration(CalibrationData calibration, int vendorId, int productId)
         {
             try
             {
-                using (var key = Registry.CurrentUser.OpenSubKey($"System\\CurrentControlSet\\Control\\MediaProperties\\PrivateProperties\\DirectInput\\VID_16C0&PID_05DF\\Calibration\\0\\Type\\Axes", writable: true))
+                using (var key = Registry.CurrentUser.OpenSubKey(GetRegistrySubKeyPath(vendorId, productId), writable: true))
                 {
                     if (key == null)
                         throw new InvalidOperationException("Registry key not found. Please ensure the device is connected.");
@@ -82,6 +82,12 @@ namespace SimRacingPedalCalibrator.Services
                 throw;
             }
         }
+
+        private static string GetRegistryPath(int vendorId, int productId) =>
+            $@"HKEY_CURRENT_USER\{GetRegistrySubKeyPath(vendorId, productId)}";
+
+        private static string GetRegistrySubKeyPath(int vendorId, int productId) =>
+            $@"System\CurrentControlSet\Control\MediaProperties\PrivateProperties\DirectInput\VID_{vendorId:X4}&PID_{productId:X4}\Calibration\0\Type\Axes";
 
         private AxisCalibration BytesToCalibration(byte[] data)
         {
