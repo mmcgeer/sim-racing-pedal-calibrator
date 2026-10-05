@@ -9,7 +9,7 @@
     <UseWinUI>true</UseWinUI>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-    <SelfContained>false</SelfContained>
+    <SelfContained>true</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>
