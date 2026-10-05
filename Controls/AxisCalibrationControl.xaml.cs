@@ -355,8 +355,8 @@ namespace SimRacingPedalCalibrator
         // NEW: Evaluate curve output for a given input value (0-1)
         private double ApplyCurvePoints(double input)
         {
-            if (input < 0) return 0;
-            if (input > 1) return 1;
+            if (input <= 0) return _curvePoints[0].Y;
+            if (input >= 1) return _curvePoints[NUM_POINTS - 1].Y;
 
             // Find which segment the input falls into
             int segment = (int)(input * (NUM_POINTS - 1));
