@@ -198,6 +198,24 @@ See [IMPLEMENTATION_SUMMARY_AXIS_MAPPING.md](IMPLEMENTATION_SUMMARY_AXIS_MAPPING
 - [ ] Advanced axis filtering
 - [ ] Curve import/export in common formats
 
+## 👏 Credits
+
+### Original Project
+**[sim-racing-pedal-calibrator](https://github.com/Adriandemalmanche/sim-racing-pedal-calibrator)**
+- **Creator & Maintainer**: [Adrian de Malmanche](https://github.com/Adriandemalmanche)
+- Original core framework, DirectInput integration, and basic calibration system
+
+### Enhancements & Features (v2.0 - v3.0)
+- **10-Point Interactive Response Curves** - Catmull-Rom spline interpolation with preset templates
+- **Flexible Device Axis Mapping** - Automatic detection and per-device configuration
+- **Real-Time Pedal Output Display** - Live input/output visualization on response curve screen
+- **Comprehensive Documentation** - 6 technical guides and user documentation
+
+### Development
+- **AI Development Assistant**: Copilot (Copilot SDK in VS Code)
+
+---
+
 ## 📝 License
 
 MIT - See LICENSE file for details
