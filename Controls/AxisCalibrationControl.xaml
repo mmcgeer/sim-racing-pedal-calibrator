@@ -162,19 +162,107 @@
                 <Grid Grid.Row="3" ColumnSpacing="20">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="1*"/>
                         <ColumnDefinition Width="150"/>
                     </Grid.ColumnDefinitions>
                     
-                    <TextBlock 
+                    <StackPanel 
                         Grid.Column="0"
-                        x:Name="CurveDescription"
-                        Text="Linear curve - drag points to modify"
-                        TextWrapping="Wrap"
-                        FontSize="12"
-                        Opacity="0.7"/>
+                        Spacing="4">
+                        <TextBlock 
+                            x:Name="CurveDescription"
+                            Text="Linear curve - drag points to modify"
+                            TextWrapping="Wrap"
+                            FontSize="12"
+                            Opacity="0.7"/>
+                    </StackPanel>
+
+                    <!-- NEW: Real-time Pedal Output Display -->
+                    <StackPanel 
+                        Grid.Column="1"
+                        Spacing="8"
+                        Padding="12"
+                        BorderBrush="{ThemeResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="4"
+                        Background="{ThemeResource ControlAltFillColorSecondaryBrush}">
+                        
+                        <TextBlock 
+                            Text="Live Output"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Opacity="0.8"/>
+                        
+                        <!-- Input/Output Values -->
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <!-- Raw Input -->
+                            <StackPanel Grid.Column="0" Spacing="4">
+                                <TextBlock Text="Input" FontSize="11" Opacity="0.6"/>
+                                <TextBlock 
+                                    x:Name="RawInputValue"
+                                    Text="0%"
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Foreground="#0066FF"/>
+                            </StackPanel>
+                            
+                            <!-- Arrow -->
+                            <TextBlock 
+                                Grid.Column="0"
+                                Text="→"
+                                FontSize="18"
+                                VerticalAlignment="Center"
+                                HorizontalAlignment="Right"
+                                Opacity="0.5"/>
+                            
+                            <!-- Curve Output -->
+                            <StackPanel Grid.Column="1" Spacing="4">
+                                <TextBlock Text="Output" FontSize="11" Opacity="0.6"/>
+                                <TextBlock 
+                                    x:Name="CurveOutputValue"
+                                    Text="0%"
+                                    FontSize="16"
+                                    FontWeight="SemiBold"
+                                    Foreground="#00AA00"/>
+                            </StackPanel>
+                        </Grid>
+                        
+                        <!-- Progress Bars -->
+                        <Grid RowSpacing="6">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- Input Progress -->
+                            <ProgressBar 
+                                Grid.Row="0"
+                                x:Name="InputProgressBar"
+                                Value="0"
+                                Maximum="100"
+                                Height="6"
+                                Foreground="#0066FF"
+                                Background="{ThemeResource ControlAltFillColorTertiaryBrush}"/>
+                            
+                            <!-- Output Progress -->
+                            <ProgressBar 
+                                Grid.Row="1"
+                                x:Name="OutputProgressBar"
+                                Value="0"
+                                Maximum="100"
+                                Height="6"
+                                Foreground="#00AA00"
+                                Background="{ThemeResource ControlAltFillColorTertiaryBrush}"/>
+                        </Grid>
+                    </StackPanel>
                     
                     <TextBlock 
-                        Grid.Column="1"
+                        Grid.Column="2"
                         x:Name="CurveDeviation"
                         Text="Deviation: 0%"
                         TextAlignment="Right"

@@ -138,6 +138,33 @@ namespace SimRacingPedalCalibrator
         {
             CurrentValueText.Text = rawValue.ToString();
             ValueBar.Value = rawValue;
+            
+            // NEW: Calculate and display curve output
+            try
+            {
+                int min = (int)MinInput.Value;
+                int max = (int)MaxInput.Value;
+                
+                // Normalize raw value to 0-1 range
+                double normalized = (rawValue - min) / (double)(max - min);
+                normalized = Math.Clamp(normalized, 0, 1);
+                
+                // Apply curve to get output
+                double curveOutput = ApplyCurvePoints(normalized);
+                
+                // Update display
+                int inputPercentage = (int)(normalized * 100);
+                int outputPercentage = (int)(curveOutput * 100);
+                
+                RawInputValue.Text = $"{inputPercentage}%";
+                CurveOutputValue.Text = $"{outputPercentage}%";
+                InputProgressBar.Value = inputPercentage;
+                OutputProgressBar.Value = outputPercentage;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SetRawValue curve output error: {ex}");
+            }
         }
 
         public void ResetCalibration()
@@ -323,6 +350,35 @@ namespace SimRacingPedalCalibrator
                 (2.0 * p0 - 5.0 * p1 + 4.0 * p2 - p3) * t2 +
                 (-p0 + 3.0 * p1 - 3.0 * p2 + p3) * t3
             );
+        }
+
+        // NEW: Evaluate curve output for a given input value (0-1)
+        private double ApplyCurvePoints(double input)
+        {
+            if (input < 0) return 0;
+            if (input > 1) return 1;
+
+            // Find which segment the input falls into
+            int segment = (int)(input * (NUM_POINTS - 1));
+            double localT = (input * (NUM_POINTS - 1)) - segment;
+
+            // Clamp segment to valid range
+            segment = Math.Max(0, Math.Min(NUM_POINTS - 2, segment));
+
+            // Get 4 points for Catmull-Rom interpolation
+            int p0 = Math.Max(0, segment - 1);
+            int p1 = segment;
+            int p2 = Math.Min(NUM_POINTS - 1, segment + 1);
+            int p3 = Math.Min(NUM_POINTS - 1, segment + 2);
+
+            // Apply Catmull-Rom interpolation
+            double output = CatmullRom(
+                _curvePoints[p0].Y, _curvePoints[p1].Y,
+                _curvePoints[p2].Y, _curvePoints[p3].Y,
+                localT);
+
+            // Clamp output to valid range
+            return Math.Clamp(output, 0, 1);
         }
 
         private void CurveCanvas_PointerReleased(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
