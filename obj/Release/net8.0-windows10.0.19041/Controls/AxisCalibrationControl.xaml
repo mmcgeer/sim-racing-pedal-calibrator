@@ -18,7 +18,7 @@
                 </Grid.RowDefinitions>
 
                 <!-- Header -->
-                <TextBlock x:ConnectionId='4' 
+                <TextBlock x:ConnectionId='12' 
                     Grid.Row="0"
                     x:Name="AxisNameText"
                     Text="Axis Name"
@@ -35,7 +35,7 @@
                     <!-- Current Value -->
                     <StackPanel Grid.Column="0" Spacing="4">
                         <TextBlock Text="Current Value" FontSize="12" Opacity="0.7"/>
-                        <TextBlock x:ConnectionId='12' 
+                        <TextBlock x:ConnectionId='20' 
                             x:Name="CurrentValueText"
                             Text="0"
                             Style="{StaticResource BodyStrongTextBlockStyle}"/>
@@ -44,7 +44,7 @@
                     <!-- Min Value -->
                     <StackPanel Grid.Column="1" Spacing="4">
                         <TextBlock Text="Min" FontSize="12" Opacity="0.7"/>
-                        <TextBlock x:ConnectionId='11' 
+                        <TextBlock x:ConnectionId='19' 
                             x:Name="MinValueText"
                             Text="0"
                             Style="{StaticResource BodyStrongTextBlockStyle}"/>
@@ -53,7 +53,7 @@
                     <!-- Max Value -->
                     <StackPanel Grid.Column="2" Spacing="4">
                         <TextBlock Text="Max" FontSize="12" Opacity="0.7"/>
-                        <TextBlock x:ConnectionId='10' 
+                        <TextBlock x:ConnectionId='18' 
                             x:Name="MaxValueText"
                             Text="65535"
                             Style="{StaticResource BodyStrongTextBlockStyle}"/>
@@ -61,7 +61,7 @@
                 </Grid>
 
                 <!-- Progress Bar for Raw Value -->
-                <ProgressBar x:ConnectionId='5' 
+                <ProgressBar x:ConnectionId='13' 
                     Grid.Row="2"
                     x:Name="ValueBar"
                     Value="0"
@@ -78,7 +78,7 @@
 
                     <StackPanel Grid.Column="0" Spacing="8">
                         <TextBlock Text="Min Value" FontSize="12" Opacity="0.7"/>
-                        <NumberBox x:ConnectionId='9' 
+                        <NumberBox x:ConnectionId='17' 
                             x:Name="MinInput"
                             Minimum="0"
                             Maximum="65535"
@@ -88,7 +88,7 @@
 
                     <StackPanel Grid.Column="1" Spacing="8">
                         <TextBlock Text="Max Value" FontSize="12" Opacity="0.7"/>
-                        <NumberBox x:ConnectionId='8' 
+                        <NumberBox x:ConnectionId='16' 
                             x:Name="MaxInput"
                             Minimum="0"
                             Maximum="65535"
@@ -105,14 +105,14 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="60"/>
                         </Grid.ColumnDefinitions>
-                        <Slider x:ConnectionId='6' 
+                        <Slider x:ConnectionId='14' 
                             Grid.Column="0"
                             x:Name="DeadZoneSlider"
                             Minimum="0"
                             Maximum="10000"
                             Value="0"
                                                             />
-                        <TextBlock x:ConnectionId='7' 
+                        <TextBlock x:ConnectionId='15' 
                             Grid.Column="1"
                             x:Name="DeadZoneValue"
                             Text="0"
@@ -128,7 +128,9 @@
             <Grid RowSpacing="12" Padding="12">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
@@ -138,23 +140,54 @@
                     <TextBlock Text="Click and drag the blue points to customize your response curve" FontSize="12" Opacity="0.7"/>
                 </StackPanel>
 
+                <!-- Preset Buttons -->
+                <StackPanel Grid.Row="1" Spacing="8" Orientation="Horizontal">
+                    <TextBlock Text="Quick Presets:" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="12"/>
+                    <Button x:ConnectionId='8' Content="Racing Brake"                             Padding="8,4"/>
+                    <Button x:ConnectionId='9' Content="Smooth Throttle"                                Padding="8,4"/>
+                    <Button x:ConnectionId='10' Content="Precise Steering"                                 Padding="8,4"/>
+                    <Button x:ConnectionId='11' Content="Linear"                        Padding="8,4"/>
+                </StackPanel>
+
                 <!-- Curve Graph Canvas -->
-                <Border Grid.Row="1" BorderBrush="{ThemeResource ControlElevationBorderBrush}" BorderThickness="1" CornerRadius="4" Margin="0,12">
-                    <Canvas x:ConnectionId='3' 
+                <Border Grid.Row="2" BorderBrush="{ThemeResource ControlElevationBorderBrush}" BorderThickness="1" CornerRadius="4" Margin="0,12">
+                    <Canvas x:ConnectionId='7' 
                         x:Name="CurveCanvas"
                         Background="{ThemeResource ControlAltFillColorSecondaryBrush}"
                         MinHeight="300"
                                                              />
                 </Border>
 
-                <!-- Description -->
-                <TextBlock x:ConnectionId='2' 
-                    Grid.Row="2"
-                    x:Name="CurveDescription"
-                    Text="Linear curve - drag points to modify"
-                    TextWrapping="Wrap"
-                    FontSize="12"
-                    Opacity="0.7"/>
+                <!-- Description and Stats -->
+                <Grid Grid.Row="3" ColumnSpacing="20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="150"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock x:ConnectionId='5' 
+                        Grid.Column="0"
+                        x:Name="CurveDescription"
+                        Text="Linear curve - drag points to modify"
+                        TextWrapping="Wrap"
+                        FontSize="12"
+                        Opacity="0.7"/>
+                    
+                    <TextBlock x:ConnectionId='6' 
+                        Grid.Column="1"
+                        x:Name="CurveDeviation"
+                        Text="Deviation: 0%"
+                        TextAlignment="Right"
+                        FontSize="12"
+                        Opacity="0.7"/>
+                </Grid>
+
+                <!-- Control Buttons -->
+                <StackPanel Grid.Row="4" Spacing="8" Orientation="Horizontal">
+                    <Button x:ConnectionId='2' x:Name="ResetCurveButton" Content="Reset to Linear"                      Padding="12,6"/>
+                    <Button x:ConnectionId='3' x:Name="SaveCurveButton" Content="💾 Save Profile"                            Padding="12,6"/>
+                    <ComboBox x:ConnectionId='4' x:Name="LoadCurveCombo"                                       MinWidth="150" Padding="8,6"/>
+                </StackPanel>
             </Grid>
         </TabViewItem>
     </TabView>

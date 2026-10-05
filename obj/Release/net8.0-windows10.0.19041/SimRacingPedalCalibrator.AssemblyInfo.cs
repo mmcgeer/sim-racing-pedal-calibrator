@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SimRacingPedalCalibrator")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6a5d27efbce6a74f90615d47f50c21f3ed3b3a5c")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+159b51bec97ada3dcf34e8367026c4abfcd53ac3")]
 [assembly: System.Reflection.AssemblyProductAttribute("SimRacingPedalCalibrator")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SimRacingPedalCalibrator")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

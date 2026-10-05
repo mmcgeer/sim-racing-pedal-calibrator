@@ -128,7 +128,9 @@
             <Grid RowSpacing="12" Padding="12">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
@@ -138,8 +140,17 @@
                     <TextBlock Text="Click and drag the blue points to customize your response curve" FontSize="12" Opacity="0.7"/>
                 </StackPanel>
 
+                <!-- Preset Buttons -->
+                <StackPanel Grid.Row="1" Spacing="8" Orientation="Horizontal">
+                    <TextBlock Text="Quick Presets:" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="12"/>
+                    <Button Content="Racing Brake" Click="OnPresetRacingBrake" Padding="8,4"/>
+                    <Button Content="Smooth Throttle" Click="OnPresetSmoothThrottle" Padding="8,4"/>
+                    <Button Content="Precise Steering" Click="OnPresetPreciseSteering" Padding="8,4"/>
+                    <Button Content="Linear" Click="OnPresetLinear" Padding="8,4"/>
+                </StackPanel>
+
                 <!-- Curve Graph Canvas -->
-                <Border Grid.Row="1" BorderBrush="{ThemeResource ControlElevationBorderBrush}" BorderThickness="1" CornerRadius="4" Margin="0,12">
+                <Border Grid.Row="2" BorderBrush="{ThemeResource ControlElevationBorderBrush}" BorderThickness="1" CornerRadius="4" Margin="0,12">
                     <Canvas 
                         x:Name="CurveCanvas"
                         Background="{ThemeResource ControlAltFillColorSecondaryBrush}"
@@ -147,14 +158,36 @@
                         SizeChanged="CurveCanvas_SizeChanged"/>
                 </Border>
 
-                <!-- Description -->
-                <TextBlock 
-                    Grid.Row="2"
-                    x:Name="CurveDescription"
-                    Text="Linear curve - drag points to modify"
-                    TextWrapping="Wrap"
-                    FontSize="12"
-                    Opacity="0.7"/>
+                <!-- Description and Stats -->
+                <Grid Grid.Row="3" ColumnSpacing="20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="150"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock 
+                        Grid.Column="0"
+                        x:Name="CurveDescription"
+                        Text="Linear curve - drag points to modify"
+                        TextWrapping="Wrap"
+                        FontSize="12"
+                        Opacity="0.7"/>
+                    
+                    <TextBlock 
+                        Grid.Column="1"
+                        x:Name="CurveDeviation"
+                        Text="Deviation: 0%"
+                        TextAlignment="Right"
+                        FontSize="12"
+                        Opacity="0.7"/>
+                </Grid>
+
+                <!-- Control Buttons -->
+                <StackPanel Grid.Row="4" Spacing="8" Orientation="Horizontal">
+                    <Button x:Name="ResetCurveButton" Content="Reset to Linear" Click="OnResetCurve" Padding="12,6"/>
+                    <Button x:Name="SaveCurveButton" Content="💾 Save Profile" Click="OnSaveCurveProfile" Padding="12,6"/>
+                    <ComboBox x:Name="LoadCurveCombo" SelectionChanged="OnLoadCurveProfile" MinWidth="150" Padding="8,6"/>
+                </StackPanel>
             </Grid>
         </TabViewItem>
     </TabView>

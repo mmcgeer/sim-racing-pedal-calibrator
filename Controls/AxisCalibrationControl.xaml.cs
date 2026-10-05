@@ -5,7 +5,10 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using SimRacingPedalCalibrator.Models;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Windows.Foundation;
+using Windows.Storage;
 
 namespace SimRacingPedalCalibrator
 {
@@ -20,6 +23,11 @@ namespace SimRacingPedalCalibrator
         private int _draggingPointIndex = -1;
         private const double POINT_RADIUS = 6;
         private const int NUM_POINTS = 11; // 0-10 inclusive
+        
+        // Curve profiles storage
+        private Dictionary<string, double[]> _curveProfiles = new();
+        private string _currentAxisName = "";
+        private const string PROFILES_KEY = "CurveProfiles";
 
         public AxisCalibrationControl()
         {
@@ -42,8 +50,12 @@ namespace SimRacingPedalCalibrator
                 CurveCanvas.PointerMoved += CurveCanvas_PointerMoved;
                 CurveCanvas.PointerReleased += CurveCanvas_PointerReleased;
                 
+                // Load saved profiles
+                LoadAllProfiles();
+                
                 // Draw initial curve
                 DrawCurve();
+                UpdateCurveDeviation();
             }
             catch (Exception ex)
             {
@@ -53,7 +65,11 @@ namespace SimRacingPedalCalibrator
 
         public string AxisName
         {
-            set => AxisNameText.Text = value;
+            set 
+            { 
+                AxisNameText.Text = value;
+                _currentAxisName = value;
+            }
         }
 
         public string AxisColor
@@ -372,7 +388,235 @@ namespace SimRacingPedalCalibrator
 
             _curvePoints[_draggingPointIndex] = new Point(newX, newY);
             DrawCurve();
+            UpdateCurveDeviation();
             e.Handled = true;
+        }
+
+        private double CalculateCurveDeviation()
+        {
+            // Calculate average distance from linear curve
+            double totalDeviation = 0;
+            for (int i = 0; i < NUM_POINTS; i++)
+            {
+                double linearY = i / 10.0;
+                double deviation = Math.Abs(_curvePoints[i].Y - linearY);
+                totalDeviation += deviation;
+            }
+            return (totalDeviation / NUM_POINTS) * 100; // Convert to percentage
+        }
+
+        private void UpdateCurveDeviation()
+        {
+            double deviation = CalculateCurveDeviation();
+            CurveDeviation.Text = $"Deviation: {deviation:F1}%";
+        }
+
+        // Preset Curves
+        private void OnPresetRacingBrake(object sender, RoutedEventArgs e)
+        {
+            // Racing Brake: More sensitive at start, aggressive curve
+            _curvePoints[0] = new Point(0.0, 0.0);
+            _curvePoints[1] = new Point(0.1, 0.25);
+            _curvePoints[2] = new Point(0.2, 0.40);
+            _curvePoints[3] = new Point(0.3, 0.55);
+            _curvePoints[4] = new Point(0.4, 0.68);
+            _curvePoints[5] = new Point(0.5, 0.80);
+            _curvePoints[6] = new Point(0.6, 0.88);
+            _curvePoints[7] = new Point(0.7, 0.93);
+            _curvePoints[8] = new Point(0.8, 0.96);
+            _curvePoints[9] = new Point(0.9, 0.98);
+            _curvePoints[10] = new Point(1.0, 1.0);
+            DrawCurve();
+            UpdateCurveDeviation();
+        }
+
+        private void OnPresetSmoothThrottle(object sender, RoutedEventArgs e)
+        {
+            // Smooth Throttle: Gentle curve, less sensitive at start
+            _curvePoints[0] = new Point(0.0, 0.0);
+            _curvePoints[1] = new Point(0.1, 0.05);
+            _curvePoints[2] = new Point(0.2, 0.12);
+            _curvePoints[3] = new Point(0.3, 0.22);
+            _curvePoints[4] = new Point(0.4, 0.35);
+            _curvePoints[5] = new Point(0.5, 0.50);
+            _curvePoints[6] = new Point(0.6, 0.65);
+            _curvePoints[7] = new Point(0.7, 0.78);
+            _curvePoints[8] = new Point(0.8, 0.88);
+            _curvePoints[9] = new Point(0.9, 0.95);
+            _curvePoints[10] = new Point(1.0, 1.0);
+            DrawCurve();
+            UpdateCurveDeviation();
+        }
+
+        private void OnPresetPreciseSteering(object sender, RoutedEventArgs e)
+        {
+            // Precise Steering: S-curve, more sensitive in middle
+            _curvePoints[0] = new Point(0.0, 0.0);
+            _curvePoints[1] = new Point(0.1, 0.08);
+            _curvePoints[2] = new Point(0.2, 0.18);
+            _curvePoints[3] = new Point(0.3, 0.32);
+            _curvePoints[4] = new Point(0.4, 0.42);
+            _curvePoints[5] = new Point(0.5, 0.50);
+            _curvePoints[6] = new Point(0.6, 0.58);
+            _curvePoints[7] = new Point(0.7, 0.68);
+            _curvePoints[8] = new Point(0.8, 0.82);
+            _curvePoints[9] = new Point(0.9, 0.92);
+            _curvePoints[10] = new Point(1.0, 1.0);
+            DrawCurve();
+            UpdateCurveDeviation();
+        }
+
+        private void OnPresetLinear(object sender, RoutedEventArgs e)
+        {
+            // Linear: Perfect 1:1 mapping
+            for (int i = 0; i < NUM_POINTS; i++)
+            {
+                _curvePoints[i] = new Point(i / 10.0, i / 10.0);
+            }
+            DrawCurve();
+            UpdateCurveDeviation();
+        }
+
+        private void OnResetCurve(object sender, RoutedEventArgs e)
+        {
+            OnPresetLinear(null, null);
+        }
+
+        // Profile Save/Load
+        private void LoadAllProfiles()
+        {
+            try
+            {
+                LoadCurveCombo.Items.Clear();
+                LoadCurveCombo.Items.Add("-- Save as new profile --");
+                
+                var localSettings = ApplicationData.Current.LocalSettings;
+                if (localSettings.Values.ContainsKey(PROFILES_KEY))
+                {
+                    string profilesJson = localSettings.Values[PROFILES_KEY] as string;
+                    if (!string.IsNullOrEmpty(profilesJson))
+                    {
+                        // Simple JSON parsing for profile names
+                        var profiles = profilesJson.Split('|');
+                        foreach (var profile in profiles.Where(p => !string.IsNullOrEmpty(p)))
+                        {
+                            var parts = profile.Split('=');
+                            if (parts.Length == 2)
+                            {
+                                LoadCurveCombo.Items.Add(parts[0]);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"LoadAllProfiles error: {ex}");
+            }
+        }
+
+        private async void OnSaveCurveProfile(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Show input dialog for profile name
+                var dialog = new ContentDialog
+                {
+                    Title = "Save Curve Profile",
+                    Content = new TextBox { PlaceholderText = $"Profile name (e.g., {_currentAxisName} - Racing)" },
+                    PrimaryButtonText = "Save",
+                    CloseButtonText = "Cancel",
+                    XamlRoot = this.XamlRoot
+                };
+
+                var result = await dialog.ShowAsync();
+                if (result == ContentDialogResult.Primary)
+                {
+                    var textBox = dialog.Content as TextBox;
+                    string profileName = textBox.Text.Trim();
+                    
+                    if (!string.IsNullOrEmpty(profileName))
+                    {
+                        SaveProfile(profileName);
+                        LoadAllProfiles();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"OnSaveCurveProfile error: {ex}");
+            }
+        }
+
+        private void SaveProfile(string name)
+        {
+            try
+            {
+                var localSettings = ApplicationData.Current.LocalSettings;
+                string curveData = string.Join(",", _curvePoints.Select(p => p.Y.ToString("F4")));
+                
+                string allProfiles = localSettings.Values.ContainsKey(PROFILES_KEY) ? 
+                    localSettings.Values[PROFILES_KEY] as string : "";
+                
+                // Remove existing profile with same name if exists
+                if (allProfiles.Contains(name + "="))
+                {
+                    var profiles = allProfiles.Split('|');
+                    allProfiles = string.Join("|", profiles.Where(p => !p.StartsWith(name + "=")));
+                }
+                
+                // Add new profile
+                if (!string.IsNullOrEmpty(allProfiles))
+                    allProfiles += "|";
+                allProfiles += $"{name}={curveData}";
+                
+                localSettings.Values[PROFILES_KEY] = allProfiles;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"SaveProfile error: {ex}");
+            }
+        }
+
+        private void OnLoadCurveProfile(object sender, SelectionChangedEventArgs e)
+        {
+            try
+            {
+                if (LoadCurveCombo.SelectedIndex <= 0) return; // Skip the "Save as new" option
+                
+                string profileName = LoadCurveCombo.SelectedItem as string;
+                if (string.IsNullOrEmpty(profileName)) return;
+                
+                var localSettings = ApplicationData.Current.LocalSettings;
+                if (localSettings.Values.ContainsKey(PROFILES_KEY))
+                {
+                    string allProfiles = localSettings.Values[PROFILES_KEY] as string;
+                    var profiles = allProfiles.Split('|');
+                    
+                    foreach (var profile in profiles)
+                    {
+                        var parts = profile.Split('=');
+                        if (parts.Length == 2 && parts[0] == profileName)
+                        {
+                            var curveData = parts[1].Split(',');
+                            for (int i = 0; i < NUM_POINTS && i < curveData.Length; i++)
+                            {
+                                if (double.TryParse(curveData[i], out double yValue))
+                                {
+                                    _curvePoints[i] = new Point(i / 10.0, yValue);
+                                }
+                            }
+                            DrawCurve();
+                            UpdateCurveDeviation();
+                            break;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"OnLoadCurveProfile error: {ex}");
+            }
         }
 
         private void UpdateCurveDescription()
