@@ -17,6 +17,7 @@ namespace SimRacingPedalCalibrator
         private AxisCalibration _calibration = new();
         private int _minSampled = int.MaxValue;
         private int _maxSampled = int.MinValue;
+        private bool _isUpdatingAxisSource;
         
         // 10-point curve system
         private Point[] _curvePoints = new Point[11]; // 0 to 10 for 11 points
@@ -69,6 +70,8 @@ namespace SimRacingPedalCalibrator
             { 
                 AxisNameText.Text = value;
                 _currentAxisName = value;
+                if (MappingTitleText != null)
+                    MappingTitleText.Text = $"{value} Input Source";
             }
         }
 
@@ -85,6 +88,11 @@ namespace SimRacingPedalCalibrator
             try
             {
                 _calibration = calibration;
+                MinInput.Minimum = calibration.Min;
+                MinInput.Maximum = calibration.Max;
+                MaxInput.Minimum = calibration.Min;
+                MaxInput.Maximum = calibration.Max;
+                ValueBar.Maximum = Math.Max(1, calibration.Max);
                 MinInput.Value = calibration.Min;
                 MaxInput.Value = calibration.Max;
                 DeadZoneSlider.Value = calibration.DeadZone;
@@ -146,7 +154,7 @@ namespace SimRacingPedalCalibrator
                 int max = (int)MaxInput.Value;
                 
                 // Normalize raw value to 0-1 range
-                double normalized = (rawValue - min) / (double)(max - min);
+                double normalized = (rawValue - min) / (double)Math.Max(1, max - min);
                 normalized = Math.Clamp(normalized, 0, 1);
                 
                 // Apply curve to get output
@@ -158,6 +166,8 @@ namespace SimRacingPedalCalibrator
                 
                 RawInputValue.Text = $"{inputPercentage}%";
                 CurveOutputValue.Text = $"{outputPercentage}%";
+                CalibratedValueText.Text = $"{outputPercentage}%";
+                CalibratedBar.Value = outputPercentage;
                 InputProgressBar.Value = inputPercentage;
                 OutputProgressBar.Value = outputPercentage;
             }
@@ -165,6 +175,11 @@ namespace SimRacingPedalCalibrator
             {
                 System.Diagnostics.Debug.WriteLine($"SetRawValue curve output error: {ex}");
             }
+        }
+
+        public void SetFirmwareOutput(int? output)
+        {
+            FirmwareOutputText.Text = output?.ToString() ?? "n/a";
         }
 
         public void ResetCalibration()
@@ -678,6 +693,68 @@ namespace SimRacingPedalCalibrator
         private void UpdateCurveDescription()
         {
             CurveDescription.Text = "10-point interactive curve - drag points to customize";
+        }
+
+        public void SetupAxisMappingCombo(DeviceInfo device, InputAxisType currentMapping, Action<InputAxisType> onMappingChanged)
+        {
+            try
+            {
+                _isUpdatingAxisSource = true;
+                _mappingChangedCallback = onMappingChanged;
+                AxisSourceCombo.Items.Clear();
+                AxisSourceCombo.Items.Add(new ComboBoxItem
+                {
+                    Content = "None (Not Used)",
+                    Tag = InputAxisType.Unknown
+                });
+
+                foreach (var axis in device.DetectedAxes)
+                {
+                    AxisSourceCombo.Items.Add(new ComboBoxItem
+                    {
+                        Content = axis.DisplayName,
+                        Tag = axis.AxisType
+                    });
+                }
+
+                for (var index = 0; index < AxisSourceCombo.Items.Count; index++)
+                {
+                    if (AxisSourceCombo.Items[index] is ComboBoxItem item &&
+                        item.Tag is InputAxisType axisType &&
+                        axisType == currentMapping)
+                    {
+                        AxisSourceCombo.SelectedIndex = index;
+                        break;
+                    }
+                }
+
+                _isUpdatingAxisSource = false;
+            }
+            catch (Exception ex)
+            {
+                _isUpdatingAxisSource = false;
+                System.Diagnostics.Debug.WriteLine($"SetupAxisMappingCombo error: {ex}");
+            }
+        }
+
+        private Action<InputAxisType>? _mappingChangedCallback;
+
+        private void OnAxisSourceChanged(object sender, SelectionChangedEventArgs e)
+        {
+            try
+            {
+                if (!_isUpdatingAxisSource &&
+                    sender is ComboBox comboBox &&
+                    comboBox.SelectedItem is ComboBoxItem selectedItem &&
+                    selectedItem.Tag is InputAxisType axisType)
+                {
+                    _mappingChangedCallback?.Invoke(axisType);
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"OnAxisSourceChanged error: {ex}");
+            }
         }
     }
 }

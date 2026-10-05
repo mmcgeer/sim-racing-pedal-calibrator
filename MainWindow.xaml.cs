@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -17,6 +18,7 @@ namespace SimRacingPedalCalibrator
         private bool _isCalibrating = false;
         private CalibrationData _calibrationData = new();
         private ObservableCollection<DeviceInfo> _availableDevices = new();
+        private DispatcherTimer? _pollTimer;
 
         public MainWindow()
         {
@@ -26,6 +28,10 @@ namespace SimRacingPedalCalibrator
 
             _deviceService = new DeviceConnectionService();
             _registryService = new RegistryService();
+
+            BoardComboBox.ItemsSource = BoardProfile.All;
+            BoardComboBox.DisplayMemberPath = "Name";
+            BoardComboBox.SelectedIndex = 0;
 
             ((FrameworkElement)Content).Loaded += MainWindow_Loaded;
         }
@@ -89,6 +95,7 @@ namespace SimRacingPedalCalibrator
         {
             try
             {
+                var previousName = (DeviceComboBox.SelectedItem as DeviceInfo)?.DisplayName;
                 var devices = _deviceService.EnumerateDevices();
                 _availableDevices.Clear();
 
@@ -101,7 +108,8 @@ namespace SimRacingPedalCalibrator
 
                 if (_availableDevices.Count > 0)
                 {
-                    DeviceComboBox.SelectedIndex = 0;
+                    var previousIndex = _availableDevices.ToList().FindIndex(d => d.DisplayName == previousName);
+                    DeviceComboBox.SelectedIndex = previousIndex >= 0 ? previousIndex : 0;
                     DeviceStatusText.Text = $"Found {_availableDevices.Count} device(s)";
                 }
                 else
@@ -118,6 +126,15 @@ namespace SimRacingPedalCalibrator
         private void OnRefreshDevicesClick(object sender, RoutedEventArgs e)
         {
             _ = RefreshAvailableDevicesAsync();
+        }
+
+        private void OnBoardSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (BoardComboBox.SelectedItem is BoardProfile board && board != _deviceService.Board)
+            {
+                _deviceService.Board = board;
+                _ = RefreshAvailableDevicesAsync();
+            }
         }
 
         private async void OnConfigureAxisMappingClick(object sender, RoutedEventArgs e)
@@ -191,13 +208,38 @@ namespace SimRacingPedalCalibrator
                         }
                         else
                         {
-                            // Use default calibration for serial devices
-                            _calibrationData = new CalibrationData();
+                            var adcMax = _deviceService.Board.AdcMaxValue;
+                            _calibrationData = new CalibrationData
+                            {
+                                Brake = new AxisCalibration(0, adcMax / 2, adcMax),
+                                Throttle = new AxisCalibration(0, adcMax / 2, adcMax),
+                                Clutch = new AxisCalibration(0, adcMax / 2, adcMax)
+                            };
                         }
 
                         BrakeControl.SetCalibration(_calibrationData.Brake);
                         ThrottleControl.SetCalibration(_calibrationData.Throttle);
                         ClutchControl.SetCalibration(_calibrationData.Clutch);
+
+                        // Setup axis mapping selection for each control
+                        ThrottleControl.SetupAxisMappingCombo(device, device.AxisMapping.ThrottleAxis,
+                            newAxis =>
+                            {
+                                device.AxisMapping.ThrottleAxis = newAxis;
+                                AxisMappingRegistryService.SaveAxisMapping(device);
+                            });
+                        BrakeControl.SetupAxisMappingCombo(device, device.AxisMapping.BrakeAxis,
+                            newAxis =>
+                            {
+                                device.AxisMapping.BrakeAxis = newAxis;
+                                AxisMappingRegistryService.SaveAxisMapping(device);
+                            });
+                        ClutchControl.SetupAxisMappingCombo(device, device.AxisMapping.ClutchAxis,
+                            newAxis =>
+                            {
+                                device.AxisMapping.ClutchAxis = newAxis;
+                                AxisMappingRegistryService.SaveAxisMapping(device);
+                            });
 
                         DeviceStatusText.Text = $"Connected: {_deviceService.ConnectedDeviceName}";
                         SaveButton.IsEnabled = true;
@@ -207,7 +249,10 @@ namespace SimRacingPedalCalibrator
                     }
                     else
                     {
-                        DeviceStatusText.Text = $"Failed to connect to {device.ProductName}";
+                        var portInUseHint = device.ConnectionDeviceType == ConnectionDeviceType.SerialPort
+                            ? " Close Arduino Serial Monitor or any other app using the port, then try again."
+                            : string.Empty;
+                        DeviceStatusText.Text = $"Failed to connect to {device.ProductName}: {_deviceService.LastConnectionError}.{portInUseHint}";
                         SaveButton.IsEnabled = false;
                     }
                 }
@@ -221,29 +266,32 @@ namespace SimRacingPedalCalibrator
 
         private void StartPollng()
         {
-            var timer = new DispatcherTimer();
-            timer.Interval = TimeSpan.FromMilliseconds(16); // ~60 FPS
-            timer.Tick += (s, e) =>
+            _pollTimer?.Stop();
+            _pollTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(16)
+            };
+            _pollTimer.Tick += (s, e) =>
             {
                 var values = _deviceService.GetAxisValues();
-                if (values != null)
+                if (values is not null)
                 {
-                    DispatcherQueue.TryEnqueue(() =>
-                    {
-                        BrakeControl.SetRawValue(values.Brake);
-                        ThrottleControl.SetRawValue(values.Throttle);
-                        ClutchControl.SetRawValue(values.Clutch);
+                    BrakeControl.SetRawValue(values.Brake);
+                    ThrottleControl.SetRawValue(values.Throttle);
+                    ClutchControl.SetRawValue(values.Clutch);
+                    BrakeControl.SetFirmwareOutput(values.BrakeOutput);
+                    ThrottleControl.SetFirmwareOutput(values.ThrottleOutput);
+                    ClutchControl.SetFirmwareOutput(values.ClutchOutput);
 
-                        if (_isCalibrating)
-                        {
-                            BrakeControl.UpdateCalibrationData(values.Brake);
-                            ThrottleControl.UpdateCalibrationData(values.Throttle);
-                            ClutchControl.UpdateCalibrationData(values.Clutch);
-                        }
-                    });
+                    if (_isCalibrating)
+                    {
+                        BrakeControl.UpdateCalibrationData(values.Brake);
+                        ThrottleControl.UpdateCalibrationData(values.Throttle);
+                        ClutchControl.UpdateCalibrationData(values.Clutch);
+                    }
                 }
             };
-            timer.Start();
+            _pollTimer.Start();
         }
 
         private void OnCalibrateClick(object sender, RoutedEventArgs e)
@@ -314,4 +362,3 @@ namespace SimRacingPedalCalibrator
         }
     }
 }
-

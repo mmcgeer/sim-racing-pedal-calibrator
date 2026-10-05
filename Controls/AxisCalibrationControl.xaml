@@ -5,6 +5,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:SimRacingPedalCalibrator">
 
+    <StackPanel Spacing="8">
+    <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,0,0,4">
+        <TextBlock x:Name="MappingTitleText" Text="Input Source" VerticalAlignment="Center" FontWeight="SemiBold"/>
+        <ComboBox
+            x:Name="AxisSourceCombo"
+            Width="260"
+            PlaceholderText="Select input..."
+            SelectionChanged="OnAxisSourceChanged"/>
+    </StackPanel>
     <TabView>
         <!-- Calibration Tab -->
         <TabViewItem Header="Calibration">
@@ -30,19 +39,39 @@
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
                     <!-- Current Value -->
                     <StackPanel Grid.Column="0" Spacing="4">
-                        <TextBlock Text="Current Value" FontSize="12" Opacity="0.7"/>
+                        <TextBlock Text="Current Value (Raw)" FontSize="12" Opacity="0.7"/>
                         <TextBlock 
                             x:Name="CurrentValueText"
                             Text="0"
                             Style="{StaticResource BodyStrongTextBlockStyle}"/>
                     </StackPanel>
 
-                    <!-- Min Value -->
+                    <!-- Calibrated Value -->
                     <StackPanel Grid.Column="1" Spacing="4">
+                        <TextBlock Text="Calibrated (App)" FontSize="12" Opacity="0.7"/>
+                        <TextBlock 
+                            x:Name="CalibratedValueText"
+                            Text="0%"
+                            Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                    </StackPanel>
+
+                    <!-- PedalFX firmware output -->
+                    <StackPanel Grid.Column="2" Spacing="4">
+                        <TextBlock Text="PedalFX Output" FontSize="12" Opacity="0.7"/>
+                        <TextBlock 
+                            x:Name="FirmwareOutputText"
+                            Text="n/a"
+                            Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                    </StackPanel>
+
+                    <!-- Min Value -->
+                    <StackPanel Grid.Column="3" Spacing="4">
                         <TextBlock Text="Min" FontSize="12" Opacity="0.7"/>
                         <TextBlock 
                             x:Name="MinValueText"
@@ -51,7 +80,7 @@
                     </StackPanel>
 
                     <!-- Max Value -->
-                    <StackPanel Grid.Column="2" Spacing="4">
+                    <StackPanel Grid.Column="4" Spacing="4">
                         <TextBlock Text="Max" FontSize="12" Opacity="0.7"/>
                         <TextBlock 
                             x:Name="MaxValueText"
@@ -61,13 +90,21 @@
                 </Grid>
 
                 <!-- Progress Bar for Raw Value -->
-                <ProgressBar 
-                    Grid.Row="2"
-                    x:Name="ValueBar"
-                    Value="0"
-                    Maximum="65535"
-                    Height="8"
-                    CornerRadius="4"/>
+                <StackPanel Grid.Row="2" Spacing="6">
+                    <ProgressBar 
+                        x:Name="ValueBar"
+                        Value="0"
+                        Maximum="65535"
+                        Height="8"
+                        CornerRadius="4"/>
+                    <ProgressBar 
+                        x:Name="CalibratedBar"
+                        Value="0"
+                        Maximum="100"
+                        Height="8"
+                        CornerRadius="4"
+                        Foreground="#FFB900"/>
+                </StackPanel>
 
                 <!-- Calibration Controls -->
                 <Grid Grid.Row="3" ColumnSpacing="10">
@@ -278,5 +315,7 @@
                 </StackPanel>
             </Grid>
         </TabViewItem>
+
     </TabView>
+    </StackPanel>
 </UserControl>

@@ -23,7 +23,10 @@
             <!-- Throttle Mapping -->
             <StackPanel Spacing="8">
                 <TextBlock Text="Throttle Axis" FontWeight="SemiBold" FontSize="13"/>
-                <ComboBox x:Name="ThrottleAxisCombo" SelectionChanged="OnThrottleAxisChanged"/>
+                <ComboBox 
+                    x:Name="ThrottleAxisCombo" 
+                    SelectionChanged="OnThrottleAxisChanged"
+                    Width="250"/>
                 <TextBlock x:Name="ThrottleValueText" Text="Current Value: 0" FontSize="11" Opacity="0.7"/>
                 <ProgressBar x:Name="ThrottleBar" Value="0" Maximum="100" Height="4"/>
             </StackPanel>
@@ -31,7 +34,10 @@
             <!-- Brake Mapping -->
             <StackPanel Spacing="8">
                 <TextBlock Text="Brake Axis" FontWeight="SemiBold" FontSize="13"/>
-                <ComboBox x:Name="BrakeAxisCombo" SelectionChanged="OnBrakeAxisChanged"/>
+                <ComboBox 
+                    x:Name="BrakeAxisCombo" 
+                    SelectionChanged="OnBrakeAxisChanged"
+                    Width="250"/>
                 <TextBlock x:Name="BrakeValueText" Text="Current Value: 0" FontSize="11" Opacity="0.7"/>
                 <ProgressBar x:Name="BrakeBar" Value="0" Maximum="100" Height="4"/>
             </StackPanel>
@@ -39,7 +45,10 @@
             <!-- Clutch Mapping -->
             <StackPanel Spacing="8">
                 <TextBlock Text="Clutch Axis" FontWeight="SemiBold" FontSize="13"/>
-                <ComboBox x:Name="ClutchAxisCombo" SelectionChanged="OnClutchAxisChanged"/>
+                <ComboBox 
+                    x:Name="ClutchAxisCombo" 
+                    SelectionChanged="OnClutchAxisChanged"
+                    Width="250"/>
                 <TextBlock x:Name="ClutchValueText" Text="Current Value: 0" FontSize="11" Opacity="0.7"/>
                 <ProgressBar x:Name="ClutchBar" Value="0" Maximum="100" Height="4"/>
             </StackPanel>

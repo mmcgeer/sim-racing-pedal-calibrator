@@ -48,6 +48,11 @@
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" Spacing="10" Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="Board:" VerticalAlignment="Center" FontWeight="Bold"/>
+                    <ComboBox
+                        x:Name="BoardComboBox"
+                        Width="220"
+                        SelectionChanged="OnBoardSelectionChanged"/>
                     <TextBlock Text="Select Device:" VerticalAlignment="Center" FontWeight="Bold"/>
                     <ComboBox 
                         x:Name="DeviceComboBox"
@@ -62,7 +67,8 @@
                     <Button 
                         x:Name="ConfigureAxisMappingButton"
                         Content="Configure Axes" 
-                        Click="OnConfigureAxisMappingClick"/>
+                        Click="OnConfigureAxisMappingClick"
+                        Visibility="Collapsed"/>
                 </StackPanel>
             </Grid>
 

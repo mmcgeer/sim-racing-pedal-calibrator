@@ -87,6 +87,20 @@ namespace SimRacingPedalCalibrator.Models
         }
     }
 
+    public class BoardProfile
+    {
+        public string Name { get; init; } = string.Empty;
+        public int AdcMaxValue { get; init; }
+        public int BaudRate { get; init; } = 115200;
+
+        public static readonly BoardProfile[] All =
+        {
+            new() { Name = "Arduino Pro Micro (10-bit)", AdcMaxValue = 1023 },
+            new() { Name = "ESP32 (12-bit)", AdcMaxValue = 4095 },
+            new() { Name = "STM32 Blue Pill (12-bit)", AdcMaxValue = 4095 }
+        };
+    }
+
     public class DeviceInfo
     {
         public Guid InstanceGuid { get; set; }
@@ -217,6 +231,9 @@ namespace SimRacingPedalCalibrator.Models
         public int Brake { get; set; }
         public int Throttle { get; set; }
         public int Clutch { get; set; }
+        public int? BrakeOutput { get; set; }
+        public int? ThrottleOutput { get; set; }
+        public int? ClutchOutput { get; set; }
     }
 
     public class CalibrationData

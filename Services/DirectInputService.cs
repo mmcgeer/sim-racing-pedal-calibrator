@@ -13,12 +13,20 @@ namespace SimRacingPedalCalibrator.Services
         private Joystick? _joystick;
         private SerialPort? _serialPort;
         private DeviceInfo? _currentDevice;
-        private byte[] _serialBuffer = new byte[6]; // 3 x 16-bit values
-        private int _bufferIndex = 0;
+        private string _serialLineBuffer = string.Empty;
+        private int _throttleValue = 0;
+        private int _brakeValue = 0;
+        private int _clutchValue = 0;
+        private int _throttleOutput = 0;
+        private int _brakeOutput = 0;
+        private int _clutchOutput = 0;
+        private bool _hasSerialData;
 
         public int VendorId { get; private set; }
         public int ProductId { get; private set; }
         public string? ConnectedDeviceName { get; private set; }
+        public string? LastConnectionError { get; private set; }
+        public BoardProfile Board { get; set; } = BoardProfile.All[0];
         public string DetectedDevices { get; private set; } = "none";
 
         private static readonly string[] TargetNames = 
@@ -48,6 +56,8 @@ namespace SimRacingPedalCalibrator.Services
             {
                 // Enumerate COM Ports (assume 3 axes for serial: Throttle, Brake, Clutch)
                 var comPorts = SerialPort.GetPortNames().OrderBy(x => x).ToList();
+                System.Diagnostics.Debug.WriteLine($"[EnumerateDevices] Found {comPorts.Count} COM ports: {string.Join(", ", comPorts)}");
+
                 foreach (var portName in comPorts)
                 {
                     var device = new DeviceInfo
@@ -62,10 +72,14 @@ namespace SimRacingPedalCalibrator.Services
                         ComPort = portName
                     };
 
-                    // Add detected axes for serial port
-                    device.DetectedAxes.Add(new DeviceAxis(InputAxisType.Throttle, "Throttle (Index 0)", 0));
-                    device.DetectedAxes.Add(new DeviceAxis(InputAxisType.Brake, "Brake (Index 1)", 1));
-                    device.DetectedAxes.Add(new DeviceAxis(InputAxisType.Slider1, "Z Slider (Index 2)", 2));
+                    var adcMax = Board.AdcMaxValue;
+                    var throttleAxis = new DeviceAxis(InputAxisType.Throttle, "Throttle (A0)", 0) { MaxValue = adcMax };
+                    var brakeAxis = new DeviceAxis(InputAxisType.Brake, "Brake (A2)", 1) { MaxValue = adcMax };
+                    var clutchAxis = new DeviceAxis(InputAxisType.Slider1, "Clutch (A1)", 2) { MaxValue = adcMax };
+
+                    device.DetectedAxes.Add(throttleAxis);
+                    device.DetectedAxes.Add(brakeAxis);
+                    device.DetectedAxes.Add(clutchAxis);
 
                     // Set default mapping for serial ports
                     device.AxisMapping = new AxisMapping(portName)
@@ -76,6 +90,7 @@ namespace SimRacingPedalCalibrator.Services
                     };
 
                     devices.Add(device);
+                    System.Diagnostics.Debug.WriteLine($"[EnumerateDevices] Added COM port device: {device.DisplayName}");
                 }
 
                 // Enumerate USB GameControl Devices
@@ -129,6 +144,7 @@ namespace SimRacingPedalCalibrator.Services
 
         public bool ConnectToDevice(DeviceInfo device)
         {
+            LastConnectionError = null;
             try
             {
                 // Disconnect previous device
@@ -145,6 +161,7 @@ namespace SimRacingPedalCalibrator.Services
             }
             catch (Exception ex)
             {
+                LastConnectionError = ex.Message;
                 System.Diagnostics.Debug.WriteLine($"Error connecting to device: {ex.Message}");
                 return false;
             }
@@ -154,20 +171,31 @@ namespace SimRacingPedalCalibrator.Services
         {
             try
             {
-                _serialPort = new SerialPort(device.ComPort, 115200, Parity.None, 8, StopBits.One);
+                _serialPort = new SerialPort(device.ComPort, Board.BaudRate, Parity.None, 8, StopBits.One);
                 _serialPort.ReadTimeout = 1000;
                 _serialPort.WriteTimeout = 1000;
+                // Native-USB boards (Pro Micro/Leonardo) only stream when DTR is asserted
+                _serialPort.DtrEnable = true;
+                _serialPort.RtsEnable = true;
                 _serialPort.Open();
 
                 ConnectedDeviceName = device.ProductName;
                 _currentDevice = device;
                 device.IsConnected = true;
-                _bufferIndex = 0;
+                _serialLineBuffer = string.Empty;
+                _throttleValue = 0;
+                _brakeValue = 0;
+                _clutchValue = 0;
+                _throttleOutput = 0;
+                _brakeOutput = 0;
+                _clutchOutput = 0;
+                _hasSerialData = false;
 
                 return true;
             }
             catch (Exception ex)
             {
+                LastConnectionError = $"Unable to open {device.ComPort}: {ex.Message}";
                 System.Diagnostics.Debug.WriteLine($"Error opening serial port: {ex.Message}");
                 _serialPort?.Dispose();
                 _serialPort = null;
@@ -205,6 +233,7 @@ namespace SimRacingPedalCalibrator.Services
             }
             catch (Exception ex)
             {
+                LastConnectionError = ex.Message;
                 System.Diagnostics.Debug.WriteLine($"Error connecting to DirectInput device: {ex.Message}");
                 return false;
             }
@@ -320,64 +349,134 @@ namespace SimRacingPedalCalibrator.Services
                 if (_serialPort == null || !_serialPort.IsOpen)
                     return null;
 
-                // Try to read available bytes
-                while (_serialPort.BytesToRead > 0 && _bufferIndex < _serialBuffer.Length)
+                // Read all available characters into the buffer
+                while (_serialPort.BytesToRead > 0)
                 {
-                    _serialBuffer[_bufferIndex++] = (byte)_serialPort.ReadByte();
+                    char ch = (char)_serialPort.ReadByte();
 
-                    // When we have a complete packet
-                    if (_bufferIndex == 6)
+                    if (ch == '\n')
                     {
-                        // Parse binary format: Throttle, Brake, Clutch (3 x 16-bit little-endian)
-                        int throttle = BitConverter.ToUInt16(_serialBuffer, 0);
-                        int brake = BitConverter.ToUInt16(_serialBuffer, 2);
-                        int clutch = BitConverter.ToUInt16(_serialBuffer, 4);
-
-                        // Update detected axes with current values
-                        if (_currentDevice != null)
+                        // End of line - parse the complete string
+                        if (!string.IsNullOrEmpty(_serialLineBuffer))
                         {
-                            foreach (var axis in _currentDevice.DetectedAxes)
-                            {
-                                switch (axis.Index)
-                                {
-                                    case 0:
-                                        axis.CurrentValue = throttle;
-                                        break;
-                                    case 1:
-                                        axis.CurrentValue = brake;
-                                        break;
-                                    case 2:
-                                        axis.CurrentValue = clutch;
-                                        break;
-                                }
-                            }
+                            _hasSerialData |= ParsePedalFXString(_serialLineBuffer);
+                            _serialLineBuffer = string.Empty;
                         }
-
-                        _bufferIndex = 0;
-
-                        // Get the axis mapping for current device
-                        var mapping = _currentDevice?.AxisMapping;
-                        if (mapping == null)
-                        {
-                            mapping = new AxisMapping();
-                        }
-
-                        return new AxisValues
-                        {
-                            Throttle = mapping.ThrottleAxis == InputAxisType.Throttle ? throttle : (mapping.ThrottleAxis == InputAxisType.Brake ? brake : clutch),
-                            Brake = mapping.BrakeAxis == InputAxisType.Throttle ? throttle : (mapping.BrakeAxis == InputAxisType.Brake ? brake : clutch),
-                            Clutch = mapping.ClutchAxis == InputAxisType.Throttle ? throttle : (mapping.ClutchAxis == InputAxisType.Brake ? brake : clutch)
-                        };
+                    }
+                    else if (ch != '\r')
+                    {
+                        _serialLineBuffer += ch;
+                        if (_serialLineBuffer.Length > 1024)
+                            _serialLineBuffer = string.Empty;
                     }
                 }
 
-                return null;
+                if (!_hasSerialData)
+                    return null;
+
+                // Create a dictionary of available axis types to serial values
+                var axisValues = new Dictionary<InputAxisType, int>
+                {
+                    { InputAxisType.Throttle, _throttleValue },
+                    { InputAxisType.Brake, _brakeValue },
+                    { InputAxisType.Slider1, _clutchValue }
+                };
+
+                // Update detected axes with current values
+                if (_currentDevice != null)
+                {
+                    foreach (var axis in _currentDevice.DetectedAxes)
+                    {
+                        if (axisValues.ContainsKey(axis.AxisType))
+                        {
+                            axis.CurrentValue = axisValues[axis.AxisType];
+                        }
+                    }
+                }
+
+                // Get the axis mapping for current device
+                var mapping = _currentDevice?.AxisMapping;
+                if (mapping == null)
+                {
+                    mapping = new AxisMapping();
+                }
+
+                var outputValues = new Dictionary<InputAxisType, int>
+                {
+                    { InputAxisType.Throttle, _throttleOutput },
+                    { InputAxisType.Brake, _brakeOutput },
+                    { InputAxisType.Slider1, _clutchOutput }
+                };
+
+                // Get values based on the device's axis mapping
+                return new AxisValues
+                {
+                    Throttle = axisValues.ContainsKey(mapping.ThrottleAxis) ? axisValues[mapping.ThrottleAxis] : 0,
+                    Brake = axisValues.ContainsKey(mapping.BrakeAxis) ? axisValues[mapping.BrakeAxis] : 0,
+                    Clutch = axisValues.ContainsKey(mapping.ClutchAxis) ? axisValues[mapping.ClutchAxis] : 0,
+                    ThrottleOutput = outputValues.TryGetValue(mapping.ThrottleAxis, out var t) ? t : null,
+                    BrakeOutput = outputValues.TryGetValue(mapping.BrakeAxis, out var b) ? b : null,
+                    ClutchOutput = outputValues.TryGetValue(mapping.ClutchAxis, out var c) ? c : null
+                };
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"Error reading serial data: {ex.Message}");
                 return null;
             }
+        }
+
+        private bool ParsePedalFXString(string line)
+        {
+            var parsedAnyPedal = false;
+            var pedals = line.Split(',');
+            foreach (var pedal in pedals)
+            {
+                if (string.IsNullOrWhiteSpace(pedal))
+                    continue;
+
+                string trimmedPedal = pedal.Trim();
+
+                // Format: T:0;0;671;0
+                // Split by ':' first to separate type from values
+                var typeSplit = trimmedPedal.Split(':');
+                if (typeSplit.Length < 2)
+                    continue;
+
+                string pedalType = typeSplit[0].Trim();
+                var values = typeSplit[1].Split(';');
+                if (values.Length < 4)
+                    continue;
+
+                // The third field is the raw ADC value; the fourth is PedalFX's own calibrated (HID) output.
+                if (!int.TryParse(values[2], out int value))
+                    continue;
+                int.TryParse(values[3], out int firmwareOutput);
+
+                value = Math.Min(Board.AdcMaxValue, Math.Max(0, value));
+                firmwareOutput = Math.Max(0, firmwareOutput);
+
+                switch (pedalType)
+                {
+                    case "T":
+                        _throttleValue = value;
+                        _throttleOutput = firmwareOutput;
+                        parsedAnyPedal = true;
+                        break;
+                    case "B":
+                        _brakeValue = value;
+                        _brakeOutput = firmwareOutput;
+                        parsedAnyPedal = true;
+                        break;
+                    case "C":
+                        _clutchValue = value;
+                        _clutchOutput = firmwareOutput;
+                        parsedAnyPedal = true;
+                        break;
+                }
+            }
+
+            return parsedAnyPedal;
         }
 
         public void Dispose()
@@ -453,7 +552,3 @@ namespace SimRacingPedalCalibrator.Services
         }
     }
 }
-
-
-
-
