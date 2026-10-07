@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO.Ports;
 using System.Linq;
@@ -491,11 +491,12 @@ namespace SimRacingPedalCalibrator.Services
             {
                 var axes = joystick.GetObjects(DeviceObjectTypeFlags.Axis);
                 int axisIndex = 0;
+                int sliderCount = 0;
 
                 foreach (var axis in axes)
                 {
                     // Map DirectInput axis objects to our InputAxisType enum
-                    var inputAxisType = MapDirectInputAxisToType(axisIndex);
+                    var inputAxisType = MapDirectInputAxisToType(axis, ref sliderCount) ?? MapDirectInputAxisToType(axisIndex);
                     var displayName = $"{axis.Name} ({inputAxisType})";
 
                     deviceInfo.DetectedAxes.Add(new DeviceAxis(
@@ -531,6 +532,19 @@ namespace SimRacingPedalCalibrator.Services
             {
                 System.Diagnostics.Debug.WriteLine($"Error detecting axes: {ex.Message}");
             }
+        }
+
+        private static InputAxisType? MapDirectInputAxisToType(DeviceObjectInstance axis, ref int sliderCount)
+        {
+            var guid = axis.ObjectType;
+            if (guid == ObjectGuid.XAxis) return InputAxisType.X;
+            if (guid == ObjectGuid.YAxis) return InputAxisType.Y;
+            if (guid == ObjectGuid.ZAxis) return InputAxisType.Z;
+            if (guid == ObjectGuid.RxAxis) return InputAxisType.RX;
+            if (guid == ObjectGuid.RyAxis) return InputAxisType.RY;
+            if (guid == ObjectGuid.RzAxis) return InputAxisType.RZ;
+            if (guid == ObjectGuid.Slider) return sliderCount++ == 0 ? InputAxisType.Slider1 : InputAxisType.Slider2;
+            return null;
         }
 
         private InputAxisType MapDirectInputAxisToType(int index)
